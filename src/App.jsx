@@ -8,7 +8,7 @@ const THEME_KEY = 'validador-escala-theme';
 export default function App() {
   const [themeKey, setThemeKey] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY);
-    return saved && THEMES[saved] ? saved : 'amareloOuro';
+    return saved && THEMES[saved] ? saved : 'escuro';
   });
   const [themeOpen, setThemeOpen] = useState(false);
   const [tab, setTab] = useState('geral');
