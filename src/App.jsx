@@ -6,11 +6,11 @@ import './App.css';
 const THEME_KEY = 'validador-escala-theme';
 const DIAS_SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
-function diaTabFromOffset(offsetDias, seq) {
-  const data = new Date();
-  data.setDate(data.getDate() + offsetDias);
+let seqGlobal = 0;
+function diaTabFromDate(data) {
   return {
-    id: `dia-${Date.now()}-${seq}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `dia-${Date.now()}-${seqGlobal++}-${Math.random().toString(36).slice(2, 7)}`,
+    ts: data.getTime(),
     label: DIAS_SEMANA[data.getDay()],
     dia: data.getDate(),
     mes: MESES[data.getMonth()],
@@ -24,18 +24,22 @@ export default function App() {
   });
   const [themeOpen, setThemeOpen] = useState(false);
   const [tab, setTab] = useState('geral');
-  // Abas de dia: permitem preparar/conferir vários dias de uma vez (ex.: sexta-feira,
-  // conferir sábado, domingo e segunda em abas separadas, cada uma com seus próprios arquivos).
-  const [diaTabs, setDiaTabs] = useState(() => [1, 2, 3].map((o, i) => diaTabFromOffset(o, i)));
+  // Abas de dia: começa com um único dia (hoje). O usuário adiciona mais dias no "+" conforme
+  // precisar (ex.: na sexta, adicionar sábado, domingo e segunda para conferir cada um numa aba).
+  const [diaTabs, setDiaTabs] = useState(() => [diaTabFromDate(new Date())]);
   const [diaAtivo, setDiaAtivo] = useState(() => diaTabs[0]?.id);
   const t = THEMES[themeKey];
 
   useEffect(() => { localStorage.setItem(THEME_KEY, themeKey); }, [themeKey]);
 
   function addDiaTab() {
-    const nova = diaTabFromOffset(diaTabs.length + 1, diaTabs.length);
-    setDiaTabs((prev) => [...prev, nova]);
-    setDiaAtivo(nova.id);
+    setDiaTabs((prev) => {
+      // Novo dia = dia seguinte ao da última aba (ts guarda a data real, robusto na virada de mês/ano).
+      const ultimaTs = prev.length ? prev[prev.length - 1].ts : Date.now();
+      const nova = diaTabFromDate(new Date(ultimaTs + 24 * 60 * 60 * 1000));
+      setDiaAtivo(nova.id);
+      return [...prev, nova];
+    });
   }
   function removeDiaTab(id) {
     setDiaTabs((prev) => {
@@ -86,18 +90,28 @@ export default function App() {
           </button>
         </header>
 
-        {/* ABAS DE DIA */}
-        <div className="no-print" style={{ display: 'flex', gap: 6, marginTop: 20, background: `rgba(${t.glow},0.06)`, padding: 5, borderRadius: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          {diaTabs.map((d) => (
-            <DiaTabButton key={d.id} t={t} d={d} active={diaAtivo === d.id}
-              onSelect={() => setDiaAtivo(d.id)} onRename={(lbl) => renameDiaTab(d.id, lbl)}
-              onRemove={diaTabs.length > 1 ? () => removeDiaTab(d.id) : null} />
-          ))}
-          <button className="tab-btn" onClick={addDiaTab} title="Adicionar aba de dia"
-            style={{ border: `1px dashed ${t.border}`, background: 'transparent', color: t.muted, cursor: 'pointer', borderRadius: 9, padding: '9px 14px', fontSize: 14, fontWeight: 700 }}>
-            + Dia
-          </button>
-        </div>
+        {/* ABAS DE DIA — com um único dia não mostra as abas (fica limpo como antes); só
+            aparecem quando o usuário clica em "+ Comparar outro dia" e passa a ter mais de um. */}
+        {diaTabs.length > 1 ? (
+          <div className="no-print" style={{ display: 'flex', gap: 6, marginTop: 20, background: `rgba(${t.glow},0.06)`, padding: 5, borderRadius: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            {diaTabs.map((d) => (
+              <DiaTabButton key={d.id} t={t} d={d} active={diaAtivo === d.id}
+                onSelect={() => setDiaAtivo(d.id)} onRename={(lbl) => renameDiaTab(d.id, lbl)}
+                onRemove={() => removeDiaTab(d.id)} />
+            ))}
+            <button className="tab-btn" onClick={addDiaTab} title="Adicionar mais um dia"
+              style={{ border: `1px dashed ${t.border}`, background: 'transparent', color: t.muted, cursor: 'pointer', borderRadius: 9, padding: '9px 14px', fontSize: 14, fontWeight: 700 }}>
+              + Dia
+            </button>
+          </div>
+        ) : (
+          <div className="no-print" style={{ marginTop: 20 }}>
+            <button className="tab-btn" onClick={addDiaTab} title="Adicionar outro dia para conferir em abas separadas"
+              style={{ border: `1px dashed ${t.border}`, background: `rgba(${t.glow},0.06)`, color: t.muted, cursor: 'pointer', borderRadius: 10, padding: '9px 16px', fontSize: 13.5, fontWeight: 700 }}>
+              + Comparar outro dia
+            </button>
+          </div>
+        )}
 
         {/* ABAS Praças / Oficiais */}
         <div className="no-print" style={{ display: 'flex', gap: 6, marginTop: 10, background: `rgba(${t.glow},0.06)`, padding: 5, borderRadius: 12, width: 'fit-content' }}>
