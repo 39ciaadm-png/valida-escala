@@ -154,12 +154,24 @@ function Resultado({ t, r, cardStyle }) {
         <KPI t={t} label="Divergências" value={resumo.divergenciasCriticas} color={semDivergencia ? t.ok : t.danger} pulse={!semDivergencia} />
       </div>
 
-      {semDivergencia ? (
+      {resumo.diariaVazia && (
+        <div style={{ ...cardStyle, padding: 16, marginBottom: 14, borderColor: t.danger, background: `${t.danger}18`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>🛑</span>
+          <div>
+            <div style={{ color: t.danger, fontWeight: 800 }}>Nenhum militar foi lido do PDF da diária.</div>
+            <div style={{ color: t.muted, fontSize: 13, marginTop: 3 }}>
+              O resultado abaixo não é confiável. Confira se o arquivo enviado é o <b>Relatório de acompanhamento diário</b> do SISP e se o PDF tem <b>texto selecionável</b> (não pode ser uma imagem/escaneado).
+            </div>
+          </div>
+        </div>
+      )}
+
+      {semDivergencia && !resumo.diariaVazia ? (
         <div style={{ ...cardStyle, padding: 16, marginBottom: 14, borderColor: t.ok, display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 20 }}>✅</span>
           <span style={{ color: t.ok, fontWeight: 700 }}>Nenhuma divergência crítica encontrada. Efetivo da diária bate com a mensal.</span>
         </div>
-      ) : (
+      ) : !resumo.diariaVazia && (
         <div style={{ ...cardStyle, padding: '12px 16px', marginBottom: 14, borderColor: t.danger, background: `${t.danger}10` }}>
           <span style={{ color: t.danger, fontWeight: 700 }}>⚠ {resumo.divergenciasCriticas} ponto(s) para conferir</span>
           <span style={{ color: t.muted, fontSize: 13 }}> — veja as seções abaixo antes de fechar a escala.</span>
