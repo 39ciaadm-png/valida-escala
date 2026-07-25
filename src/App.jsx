@@ -32,6 +32,21 @@ export default function App() {
 
   useEffect(() => { localStorage.setItem(THEME_KEY, themeKey); }, [themeKey]);
 
+  // Se o usuário arrastar um arquivo e soltar fora dos campos de upload (ex.: erra o alvo), o
+  // Chrome por padrão tenta ABRIR o arquivo direto na aba — o que pode travar o navegador com
+  // PDFs problemáticos (RESULT_CODE_KILLED_BAD_MESSAGE). Bloqueando dragover/drop na página
+  // inteira, um drop "perdido" simplesmente não faz nada, em vez de travar. Os campos de upload
+  // continuam funcionando: eles têm seus próprios onDrop que já chama preventDefault antes disso.
+  useEffect(() => {
+    const bloquear = (e) => e.preventDefault();
+    window.addEventListener('dragover', bloquear);
+    window.addEventListener('drop', bloquear);
+    return () => {
+      window.removeEventListener('dragover', bloquear);
+      window.removeEventListener('drop', bloquear);
+    };
+  }, []);
+
   function addDiaTab() {
     setDiaTabs((prev) => {
       // Novo dia = dia seguinte ao da última aba (ts guarda a data real, robusto na virada de mês/ano).

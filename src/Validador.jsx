@@ -16,8 +16,7 @@ export default function Validador({ t, tipo, initialDia, initialMes }) {
   const [error, setError] = useState('');
   const [r, setR] = useState(null);
 
-  async function handleMensalChange(e) {
-    const file = e.target.files[0];
+  async function carregarMensal(file) {
     setMensalFile(file);
     setAbas([]); setAba(''); setError('');
     if (!file) return;
@@ -38,6 +37,24 @@ export default function Validador({ t, tipo, initialDia, initialMes }) {
       setLoadingAbas(false);
     }
   }
+  function handleMensalChange(e) { carregarMensal(e.target.files[0]); }
+
+  // Arrastar-e-soltar: sem isso, um drop que "erra" o campo faz o Chrome tentar abrir o
+  // arquivo direto na aba — e travar (RESULT_CODE_KILLED_BAD_MESSAGE) com PDFs problemáticos.
+  function soltarArquivo(setter, extEsperada) {
+    return (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      if (extEsperada && !file.name.toLowerCase().endsWith(extEsperada)) {
+        setError(`Arquivo "${file.name}" não é ${extEsperada} — verifique se arrastou o arquivo certo.`);
+        return;
+      }
+      setter(file);
+    };
+  }
+  const impedirDefault = (e) => { e.preventDefault(); e.stopPropagation(); };
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -81,7 +98,10 @@ export default function Validador({ t, tipo, initialDia, initialMes }) {
         <div style={{ fontSize: 12.5, color: t.muted }}>{labelInfo}</div>
         <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))' }}>
           <Campo t={t} label={ehOficiais ? 'Escala mensal de oficiais (.ods)' : 'Escala mensal (.ods)'}>
-            <input type="file" accept=".ods" onChange={handleMensalChange} style={fileStyle(t)} />
+            <DropZone onDrop={soltarArquivo(carregarMensal, '.ods')} onDragOver={impedirDefault}>
+              <input type="file" accept=".ods" onChange={handleMensalChange} style={fileStyle(t)} />
+              {mensalFile && <NomeArquivo t={t} nome={mensalFile.name} />}
+            </DropZone>
           </Campo>
           <Campo t={t} label="Aba / Período">
             <select value={aba} onChange={(e) => setAba(e.target.value)} disabled={!abas.length} style={inpStyle(t)}>
@@ -102,7 +122,10 @@ export default function Validador({ t, tipo, initialDia, initialMes }) {
             </select>
           </Campo>
           <Campo t={t} label="Escala diária (PDF do SISP)">
-            <input type="file" accept=".pdf" onChange={(e) => setDiariaFile(e.target.files[0])} style={fileStyle(t)} />
+            <DropZone onDrop={soltarArquivo(setDiariaFile, '.pdf')} onDragOver={impedirDefault}>
+              <input type="file" accept=".pdf" onChange={(e) => setDiariaFile(e.target.files[0])} style={fileStyle(t)} />
+              {diariaFile && <NomeArquivo t={t} nome={diariaFile.name} />}
+            </DropZone>
           </Campo>
         </div>
         <button type="submit" disabled={loading} style={{
@@ -302,6 +325,16 @@ function Resultado({ t, r, cardStyle }) {
 }
 
 /* ---------- subcomponentes ---------- */
+function DropZone({ onDrop, onDragOver, children }) {
+  return (
+    <div onDrop={onDrop} onDragOver={onDragOver} style={{ display: 'grid', gap: 4 }}>
+      {children}
+    </div>
+  );
+}
+function NomeArquivo({ t, nome }) {
+  return <span style={{ fontSize: 11, color: t.ok }}>✓ {nome}</span>;
+}
 function Campo({ t, label, children }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
